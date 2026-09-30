@@ -261,7 +261,15 @@ func (s *Server) handleDeleteCallback(ctx context.Context, req *mcp.CallToolRequ
 
 // handleGetLoadedCommands retrieves loaded commands for a callback
 func (s *Server) handleGetLoadedCommands(ctx context.Context, req *mcp.CallToolRequest, args getLoadedCommandsArgs) (*mcp.CallToolResult, any, error) {
-	commands, err := s.mythicClient.GetLoadedCommands(ctx, args.CallbackID)
+	// args.CallbackID is a display_id, but GetLoadedCommands filters on the
+	// internal callback_id. Resolve display_id -> internal id first, otherwise
+	// the query silently returns zero rows.
+	callback, err := s.mythicClient.GetCallbackByID(ctx, args.CallbackID)
+	if err != nil {
+		return nil, nil, translateError(err)
+	}
+
+	commands, err := s.mythicClient.GetLoadedCommands(ctx, callback.ID)
 	if err != nil {
 		return nil, nil, translateError(err)
 	}
